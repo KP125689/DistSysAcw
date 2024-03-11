@@ -10,16 +10,18 @@ namespace DistSysAcwServer.Controllers
         /// Constructs a TalkBack controller, taking the UserContext through dependency injection
         /// </summary>
         /// <param name="context">DbContext set as a service in Startup.cs and dependency injected</param>
-        public TalkbackController(Models.UserContext dbcontext) : base(dbcontext) { }
+        public TalkbackController(Models.UserContext dbcontext) : base(dbcontext) 
+        { 
+        }
 
 
         #region TASK1
         //    TODO: add api/talkback/hello response
-        [HttpGet("Hello")]
+        [HttpGet("hello")]
         public IActionResult Hello()
         {
-            string greet = "Hello World!";
-            return Ok(greet);   
+            string greeting = "Hello world";
+            return Ok(greeting);
         }
         #endregion
 
@@ -30,26 +32,39 @@ namespace DistSysAcwServer.Controllers
         //       send the integers back as the api/talkback/sort response
         //       conform to the error handling requirements in the spec
         [HttpGet("Sort")]
-        public IActionResult NumberSorting([FromQuery] int[] integers) 
+        public IActionResult Sort([FromQuery] string sortValue)
         {
-            try
+            if (string.IsNullOrEmpty(sortValue))
             {
-                //array can't be empty 
-                if (integers ==  null || integers.Length == 0)
-                {
-                    return BadRequest("please enter a valid input ");
-                }
-                
-                //sort array in ascending order
-                Array.Sort(integers);
-                return Ok(integers);
+                return BadRequest("Please provide a value to sort.");
             }
 
-            catch (Exception ex)
+            // Split the input string by comma or other separators
+            var stringValues = sortValue.Split(',');
+
+            // List to store integers
+            List<int> integers = new List<int>();
+
+            // Loop through strings and convert to integers
+            foreach (var value in stringValues)
             {
-                // error handling
-                return BadRequest("Error: " + ex.Message);
+                int intValue;
+                if (int.TryParse(value, out intValue))
+                {
+                    integers.Add(intValue);
+                }
+                else
+                {
+                    // Handle invalid integer case (log error or return bad request)
+                    return BadRequest("Invalid integer value found.");
+                }
             }
+
+            // Sort the list of integers
+            integers.Sort();
+
+            // Return the sorted integers (convert back to string if needed)
+            return Ok(string.Join(",", integers));
         }
         #endregion
     }
