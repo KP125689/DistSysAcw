@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace DistSysAcwServer.Controllers
 {
+    [Route("api/[Controller]/[Action]")]
     public class TalkbackController : BaseController
     {
         /// <summary>
@@ -17,8 +18,8 @@ namespace DistSysAcwServer.Controllers
 
         #region TASK1
         //    TODO: add api/talkback/hello response
-        [HttpGet("hello")]
-        public IActionResult Hello()
+        
+        public IActionResult hello()
         {
             string greeting = "Hello world";
             return Ok(greeting);
@@ -31,41 +32,27 @@ namespace DistSysAcwServer.Controllers
         //       sort the integers into ascending order
         //       send the integers back as the api/talkback/sort response
         //       conform to the error handling requirements in the spec
-        [HttpGet("Sort")]
-        public IActionResult Sort([FromQuery] string sortValue)
+
+        public IActionResult Sort([FromQuery] int[] numbers) //https://localhost:44394/api/talkback/sort?sortValue=9&sortValue=3&sortValue=4 to test
         {
-            if (string.IsNullOrEmpty(sortValue))
+            try
             {
-                return BadRequest("Please provide a value to sort.");
+                if (numbers == null || numbers.Length == 0)
+                {
+                    return BadRequest("Please provide a value to sort.");
+                }
+
+                Array.Sort(numbers);
+                return Ok(numbers);
+
             }
-
-            // Split the input string by comma or other separators
-            var stringValues = sortValue.Split(',');
-
-            // List to store integers
-            List<int> integers = new List<int>();
-
-            // Loop through strings and convert to integers
-            foreach (var value in stringValues)
+            catch (Exception ex)
             {
-                int intValue;
-                if (int.TryParse(value, out intValue))
-                {
-                    integers.Add(intValue);
-                }
-                else
-                {
-                    // Handle invalid integer case (log error or return bad request)
-                    return BadRequest("Invalid integer value found.");
-                }
+                // Handle any errors, such as invalid input
+                return BadRequest($"Error: {ex.Message}");
             }
-
-            // Sort the list of integers
-            integers.Sort();
-
-            // Return the sorted integers (convert back to string if needed)
-            return Ok(string.Join(",", integers));
         }
+
         #endregion
     }
 }
