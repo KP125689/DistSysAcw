@@ -33,7 +33,7 @@ namespace DistSysAcwServer.Controllers
         //       send the integers back as the api/talkback/sort response
         //       conform to the error handling requirements in the spec
 
-        public IActionResult Sort([FromQuery] int[] numbers) //https://localhost:44394/api/talkback/sort?sortValue=9&sortValue=3&sortValue=4 to test
+        public IActionResult Sort([FromQuery] int[] numbers) //use https://localhost:44394/api/talkback/sort?numbers=9&numbers=3&numbers=4 to test
         {
             try
             {

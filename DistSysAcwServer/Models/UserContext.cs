@@ -4,8 +4,8 @@ namespace DistSysAcwServer.Models
 {
     public class UserContext : DbContext
     {
-        public UserContext() : base() { }
-
+        public UserContext() : base() {}
+        
         public DbSet<User> Users { get; set; }
 
         //TODO: Task13
