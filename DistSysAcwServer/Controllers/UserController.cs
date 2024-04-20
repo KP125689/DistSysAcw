@@ -1,6 +1,7 @@
 ﻿using DistSysAcwServer.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
 
 
 #region Task4
@@ -17,12 +18,13 @@ namespace DistSysAcwServer.Controllers
             _dbContext = dbContext;
         }
 
-        [HttpGet("New")]
+        // GET: api/user/new
+        [HttpGet("new")]
         public IActionResult NewGet(string username)
         {
             if (string.IsNullOrEmpty(username))
             {
-                return Ok("False - User Does Not Exist! Did you mean to do a POST to create a new user?");
+                return BadRequest(new { errors = new { username = new[] { "The username field is required." } } });
             }
 
             var userExists = _dbContext.Users.Any(u => u.UserName == username);
@@ -36,15 +38,15 @@ namespace DistSysAcwServer.Controllers
             }
         }
 
-        [HttpPost("New")]
-        public IActionResult NewPost([FromBody] string username)
+        // POST: api/user/new
+        [HttpPost("new")]
+        public IActionResult NewPost([FromBody] CreateUserModel model )
         {
-            if (string.IsNullOrEmpty(username))
+            if (!ModelState.IsValid)
             {
-                return BadRequest("Oops. Make sure your body contains a string with your username and your Content-Type is Content-Type:application/json");
+                return BadRequest(new { errors = ModelState });
             }
-
-            var existingUser = _dbContext.Users.FirstOrDefault(u => u.UserName == username);
+            var existingUser = _dbContext.Users.FirstOrDefault(u => u.UserName == model.Username);
             if (existingUser != null)
             {
                 return StatusCode(403, "Oops. This username is already in use. Please try again with a new username.");
@@ -52,9 +54,9 @@ namespace DistSysAcwServer.Controllers
 
             var user = new User
             {
-                UserName = username,
+                UserName = model.Username,
                 ApiKey = Guid.NewGuid().ToString(),
-                Role = _dbContext.Users.Any() ? "User" : "Admin" // If it's the first user, set as Admin
+                Role = "User" // Assign a default role for new users
             };
 
             _dbContext.Users.Add(user);
@@ -62,7 +64,15 @@ namespace DistSysAcwServer.Controllers
 
             return Ok(user.ApiKey);
         }
+
+        public class CreateUserModel
+        {
+            [Required(ErrorMessage = "The username field is required.")]
+            public string? Username { get; set; }
+        }
+
+
     }
-        
+
 }
 #endregion
