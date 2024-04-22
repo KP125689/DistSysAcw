@@ -17,8 +17,8 @@ namespace DistSysAcwServer.Models
 
         public User()
         {
-            ApiKey = Guid.NewGuid().ToString();
-        } // Empty constructor
+           ApiKey = Guid.NewGuid().ToString();
+        } // was the old Empty constructor
 
 
 

@@ -1,13 +1,10 @@
-﻿using System;
-using System.Linq;
-using System.Security.Claims;
-using System.Text;
+﻿using System.Security.Claims;
 using System.Text.Encodings.Web;
-using System.Threading.Tasks;
-using DistSysAcwServer.Controllers;
+using DistSysAcwServer.Services;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+
+
 
 
 namespace DistSysAcwServer.Auth
@@ -15,24 +12,23 @@ namespace DistSysAcwServer.Auth
     /// <summary>
     /// Authenticates clients by API Key
     /// </summary>
-    public class CustomAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>, IAuthenticationHandler
+    public class CustomAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
     {
-        private Models.UserContext DbContext { get; set; }
-        private IHttpContextAccessor HttpContextAccessor { get; set; }
-
         private readonly UserDatabaseAccess _userDatabaseAccess;
+        //private readonly IHttpContextAccessor _httpContextAccessor;
 
-
-        public CustomAuthenticationHandler(IOptionsMonitor<AuthenticationSchemeOptions> options,
-                                           ILoggerFactory logger,
-                                           UrlEncoder encoder,
-                                           ISystemClock clock,
-                                           UserDatabaseAccess userDatabaseAccess)
+        public CustomAuthenticationHandler(
+            IOptionsMonitor<AuthenticationSchemeOptions> options,
+            ILoggerFactory logger,
+            UrlEncoder encoder,
+            ISystemClock clock,
+            UserDatabaseAccess userDatabaseAccess)
+            //IHttpContextAccessor httpContextAccessor)
             : base(options, logger, encoder, clock)
         {
             _userDatabaseAccess = userDatabaseAccess;
+          //  _httpContextAccessor = httpContextAccessor;
         }
-
 
         protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
         {
@@ -42,7 +38,8 @@ namespace DistSysAcwServer.Auth
                 return AuthenticateResult.Fail("Unauthorized. ApiKey header is missing.");
             }
 
-            string apiKey = apiKeyHeaderValues.FirstOrDefault();
+            var apiKey = apiKeyHeaderValues.FirstOrDefault();
+
 
             // Check if the API Key is valid
             var user = await _userDatabaseAccess.GetUserByApiKey(apiKey);
@@ -50,6 +47,10 @@ namespace DistSysAcwServer.Auth
             {
                 // API Key is not valid
                 return AuthenticateResult.Fail("Unauthorized. Check ApiKey in Header is correct.");
+            }
+            if (string.IsNullOrEmpty(apiKey))
+            {
+                return AuthenticateResult.Fail("Unauthorized: API Key is empty.");
             }
 
             // API Key is valid, create claims
@@ -66,15 +67,14 @@ namespace DistSysAcwServer.Auth
 
             return AuthenticateResult.Success(ticket);
         }
-        /* 
 
-        protected override async Task HandleChallengeAsync(AuthenticationProperties properties)
+       /* protected override async Task HandleChallengeAsync(AuthenticationProperties properties)
         {
-            byte[] messagebytes = Encoding.ASCII.GetBytes("Task 5 Incomplete");
+            byte[] messageBytes = Encoding.ASCII.GetBytes("Unauthorized. Check ApiKey in Header is correct.");
             Context.Response.StatusCode = 401;
             Context.Response.ContentType = "application/json";
-            await Context.Response.Body.WriteAsync(messagebytes, 0, messagebytes.Length);
-            await HttpContextAccessor.HttpContext.Response.CompleteAsync();
+            await Context.Response.Body.WriteAsync(messageBytes, 0, messageBytes.Length);
+            await Context.Response.Body.FlushAsync();
         }*/
     }
 }

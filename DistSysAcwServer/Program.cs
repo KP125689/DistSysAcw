@@ -1,6 +1,9 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using System.Reflection;
+using DistSysAcwServer.Models; 
+using DistSysAcwServer.Auth; 
+using DistSysAcwServer.Services; 
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +24,7 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddTransient<IAuthorizationHandler, DistSysAcwServer.Auth.CustomAuthorizationHandler>();
 
+builder.Services.AddScoped<UserDatabaseAccess>();
 
 var app = builder.Build();
 

@@ -25,11 +25,11 @@ namespace DistSysAcwServer.Controllers
         #region Task3
         public interface IUserService
         {
-            /* string CreateUser(string username);
+            string CreateUser(string username);
             bool UserExists(string apiKey);
             bool UserExists(string apiKey, string username);
             User GetUserByApiKey(string apiKey);
-            void DeleteUser(string apiKey);*/
+            void DeleteUser(string apiKey);
         }
 
         public class UserService : IUserService

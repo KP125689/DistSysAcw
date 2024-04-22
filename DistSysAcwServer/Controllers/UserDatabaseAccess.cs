@@ -1,7 +1,12 @@
 ﻿using System.Threading.Tasks;
 using DistSysAcwServer.Models;
+using DistSysAcwServer.Auth;
+using DistSysAcwServer.Migrations;
 using Microsoft.EntityFrameworkCore;
-namespace DistSysAcwServer.Controllers
+
+
+
+namespace DistSysAcwServer.Services
 {
     public class UserDatabaseAccess
     {

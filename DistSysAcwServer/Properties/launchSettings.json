@@ -12,7 +12,7 @@
     "IIS Express": {
       "commandName": "IISExpress",
       "launchBrowser": true,
-      "launchUrl": "api/user/new",
+      "launchUrl": "api/talkback/hello",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
@@ -20,7 +20,7 @@
     "DistSysAcw": {
       "commandName": "Project",
       "launchBrowser": true,
-      "launchUrl": "api/user/new",
+      "launchUrl": "api/talkback/hello",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
