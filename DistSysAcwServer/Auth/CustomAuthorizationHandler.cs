@@ -38,6 +38,16 @@ namespace DistSysAcwServer.Auth
                         context.Succeed(requirement);
                         return Task.CompletedTask;
                     }
+                    else
+                    {
+                        // User doesn't have the required role, return Forbidden status
+                        var httpContext = HttpContextAccessor.HttpContext;
+                        httpContext.Response.StatusCode = StatusCodes.Status403Forbidden;
+                        httpContext.Response.ContentType = "text/plain";
+                        httpContext.Response.WriteAsync("Forbidden. Admin access only.");
+
+                        context.Fail();
+                    }
                 }
             }
             

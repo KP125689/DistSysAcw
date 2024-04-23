@@ -4,8 +4,6 @@ using DistSysAcwServer.Auth;
 using DistSysAcwServer.Migrations;
 using Microsoft.EntityFrameworkCore;
 
-
-
 namespace DistSysAcwServer.Services
 {
     public class UserDatabaseAccess
@@ -25,5 +23,19 @@ namespace DistSysAcwServer.Services
             return await _dbContext.Users.FirstOrDefaultAsync(u => u.ApiKey == apiKey);
         }
 
+        public bool DeleteUser(string apiKey) //task 7
+        {
+            var user = _dbContext.Users.FirstOrDefault(u => u.ApiKey == apiKey);
+            if (user != null)
+            {
+                _dbContext.Users.Remove(user);
+                _dbContext.SaveChanges();
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
     }
 }
