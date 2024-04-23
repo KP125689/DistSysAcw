@@ -59,7 +59,8 @@ namespace DistSysAcwServer.Controllers
                 return Ok(false);
             }
         }
-        #endregion
+        #endregion Task 7
+
 
         // GET: api/user/new
         [HttpGet("new")]
@@ -176,9 +177,38 @@ namespace DistSysAcwServer.Controllers
             }
         }
         #endregion
+        // POST: api/user/changerole
+        [HttpPost("changerole")]
+        [Authorize(Roles = "Admin")] // Ensure only Admin users can access this endpoint
+        public IActionResult ChangeRole([FromBody] UserRoleChangeModel model)
+        {
+            if (model == null || string.IsNullOrEmpty(model.Username) || string.IsNullOrEmpty(model.Role))
+            {
+                return BadRequest("Invalid request. Please provide both username and role in the request body.");
+            }
 
+            // Find the user by username
+            var user = _dbContext.Users.FirstOrDefault(u => u.UserName == model.Username);
+            if (user == null)
+            {
+                return NotFound($"User '{model.Username}' not found.");
+            }
+
+            // Update user role
+            user.Role = model.Role;
+            _dbContext.SaveChanges();
+
+            return Ok($"Role updated successfully for user '{model.Username}'. New role: '{model.Role}'.");
+            
+        }
     }
-
+    public class UserRoleChangeModel
+    {
+        public string? Username { get; set; }
+        public string? Role { get; set; }
+    }
 }
+
+
 #endregion
 
