@@ -11,12 +11,55 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 
 
-Console.WriteLine("helloworld");
+//Console.WriteLine("helloworld");
 #region Task 10 and beyond
 namespace DistSysAcwClient
 {
 
+    public class Client
+    {
+        // Define your symmetric key and IV here (use the same values as the ones used for encryption on the server side)
+        private static readonly string symmetricKey = "your-symmetric-key";
+        private static readonly string iv = "your-iv";
 
+        public static void DecryptAndOutput(string encryptedMashifiedString)
+        {
+            try
+            {
+                // Decrypt the encrypted mashified string using AES with the client's symmetric key and IV
+                string decryptedString = DecryptAES(encryptedMashifiedString, symmetricKey, iv);
+
+                // Output the decrypted string to the console
+                Console.WriteLine("Decrypted String: " + decryptedString);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("An error occurred while decrypting the string: " + ex.Message);
+            }
+        }
+
+        private static string DecryptAES(string encryptedText, string key, string iv)
+        {
+            using (Aes aesAlg = Aes.Create())
+            {
+                aesAlg.Key = Convert.FromHexString(key);
+                aesAlg.IV = Convert.FromHexString(iv);
+
+                ICryptoTransform decryptor = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);
+
+                using (MemoryStream msDecrypt = new MemoryStream(Convert.FromHexString(encryptedText)))
+                {
+                    using (CryptoStream csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read))
+                    {
+                        using (StreamReader srDecrypt = new StreamReader(csDecrypt))
+                        {
+                            return srDecrypt.ReadToEnd();
+                        }
+                    }
+                }
+            }
+        }
+    }
     public class YourClientClass
     {
         private static string publicKey;
@@ -134,38 +177,20 @@ namespace DistSysAcwClient
 
 
 
-
     class Program
     {
-        static HttpClient client = new HttpClient();
-        private static readonly HttpClient httpClient = new HttpClient();
+        //static HttpClient client = new HttpClient();
+        public static HttpClient httpClient = new HttpClient();
 
         
         public static class Constants
         {
             public const string BaseUrl = "http://localhost:44394/"; // Update <portnumber> with your local server's port
-          //public const string BaseUrl = "http://150.237.94.9/<myUniqueCode>/"; // Uncomment this line to switch to the test server
+          //public const string BaseUrl = "http://150.237.94.9/9458503/"; // Uncomment this line to switch to the test server
         }
 
         static async Task Main(string[] args)
         {
-
-            // Retrieve and store the public key
-            //await YourClientClass.GetPublicKey();
-
-            string apiKey = "<your-api-key>";
-            string message = "Your message to sign";
-            //string publicKey = await PublicKeyManager.GetPublicKeyAsync(apiKey);
-            // Example: Encrypt data using the stored public key
-            string encryptedData = YourClientClass.EncryptData("Your sensitive data");
-            Console.WriteLine("Encrypted data: " + encryptedData);
-            string signedMessage = await SignManager.SignMessageAsync(apiKey, message);
-            Console.WriteLine("Signed message: " + signedMessage);
-
-            // Verify the signature using the server's public key
-            string publicKey = "<server-public-key>"; // Retrieve the server's public key from Task11
-            bool isSignatureValid = SignManager.VerifySignature(publicKey, message, signedMessage);
-            Console.WriteLine("Is signature valid? " + isSignatureValid);
 
 
             Console.WriteLine("Hello. What would you like to do?");
@@ -219,7 +244,23 @@ namespace DistSysAcwClient
                     break;
             }
 
-           
+            // Retrieve and store the public key
+            await YourClientClass.GetPublicKey();
+
+            string apiKey = "<your-api-key>";
+            string message = "Your message to sign";
+            //string publicKey = await PublicKeyManager.GetPublicKeyAsync(apiKey);
+            // Example: Encrypt data using the stored public key
+            string encryptedData = YourClientClass.EncryptData("Your sensitive data");
+            Console.WriteLine("Encrypted data: " + encryptedData);
+            string signedMessage = await SignManager.SignMessageAsync(apiKey, message);
+            Console.WriteLine("Signed message: " + signedMessage);
+
+            // Verify the signature using the server's public key
+            string publicKey = "<server-public-key>"; // Retrieve the server's public key from Task11
+            bool isSignatureValid = SignManager.VerifySignature(publicKey, message, signedMessage);
+            Console.WriteLine("Is signature valid? " + isSignatureValid);
+
         }
 
         static async Task TalkBackHello()
@@ -249,7 +290,7 @@ namespace DistSysAcwClient
             // Implement User Get functionality
             Console.Write("Enter username: ");
             string username = Console.ReadLine();
-            HttpResponseMessage response = await client.GetAsync(Constants.BaseUrl + $"api/user/get?username={username}");
+            HttpResponseMessage response = await httpClient.GetAsync(Constants.BaseUrl + $"api/user/get?username={username}");
             string result = await response.Content.ReadAsStringAsync();
             Console.WriteLine(result);
         }
@@ -260,7 +301,7 @@ namespace DistSysAcwClient
             Console.Write("Enter username: ");
             string username = Console.ReadLine();
             StringContent content = new StringContent($"{{ \"username\": \"{username}\" }}", Encoding.UTF8, "application/json");
-            HttpResponseMessage response = await client.PostAsync(Constants.BaseUrl + "api/user/post", content);
+            HttpResponseMessage response = await httpClient.PostAsync(Constants.BaseUrl + "api/user/post", content);
             string result = await response.Content.ReadAsStringAsync();
             Console.WriteLine(result);
         }

@@ -3,6 +3,7 @@ using DistSysAcwServer.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 
 
@@ -23,18 +24,21 @@ namespace DistSysAcwServer.Controllers
 
         }
 
+
+
+
         #region Task7
         [HttpDelete("RemoveUser")]
         [Authorize(Roles = "User, Admin")]
         public async Task<IActionResult> RemoveUser(string username)
         {
             // Get API Key from header
-            if (!Request.Headers.TryGetValue("ApiKey", out var apiKeyHeaderValues))
+            if (!Request.Headers.TryGetValue(username, out var ApiKeyHeaderValues))
             {
                 return BadRequest("ApiKey header is missing.");
             }
 
-            string apiKey = apiKeyHeaderValues.FirstOrDefault();
+            string apiKey = ApiKeyHeaderValues.FirstOrDefault();
 
             // Check if the API Key is valid
             var user = await _userDatabaseAccess.GetUserByApiKey(apiKey);
@@ -87,10 +91,8 @@ namespace DistSysAcwServer.Controllers
         [HttpPost("new")]
         public IActionResult NewPost([FromBody] CreateUserModel model )
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(new { errors = ModelState });
-            }
+            string apiKey = Guid.NewGuid().ToString();
+           
             var existingUser = _dbContext.Users.FirstOrDefault(u => u.UserName == model.Username);
             if (existingUser != null)
             {
@@ -118,14 +120,14 @@ namespace DistSysAcwServer.Controllers
 
 
          #region Task3
-       /* public interface IUserService
+        public interface IUserService
         {
             string CreateUser(string username);
             bool UserExists(string apiKey);
             bool UserExists(string apiKey, string username);
             User GetUserByApiKey(string apiKey);
             void DeleteUser(string apiKey);
-        }*/
+        }
 
         public class UserService : ControllerBase
         {
@@ -136,45 +138,46 @@ namespace DistSysAcwServer.Controllers
                 _dbContext = dbContext;
             }
 
-            public string CreateUser(string username)
+            
+            protected async Task<User> CreateUser(string userName)
             {
-
                 var user = new User
                 {
                     ApiKey = Guid.NewGuid().ToString(),
-                    UserName = username,
-                    Role = "User" // Default role
+                    UserName = userName,
+                    Role = "User" // Default role, assuming Role is an enum
                 };
-
                 _dbContext.Users.Add(user);
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
+                return user;
+            }
+            
 
-                return user.ApiKey;
+            protected async Task<bool> UserExists(string apiKey)
+            {
+                return await _dbContext.Users.AnyAsync(u => u.ApiKey == apiKey);
             }
 
-            public bool UserExists(string apiKey) //delete all n simplify and follow lab 
+            protected async Task<bool> UserExists(string apiKey, string userName)
             {
-                return _dbContext.Users.Any(u => u.ApiKey == apiKey);
+                return await _dbContext.Users.AnyAsync(u => u.ApiKey == apiKey && u.UserName == userName);
             }
 
-            public bool UserExists(string apiKey, string username)
+            protected async Task<User> GetUser(string apiKey)
             {
-                return _dbContext.Users.Any(u => u.ApiKey == apiKey && u.UserName == username);
+                return await _dbContext.Users.FirstOrDefaultAsync(u => u.ApiKey == apiKey);
             }
 
-            public User GetUserByApiKey(string apiKey)
+            protected async Task<bool> DeleteUser(string apiKey)
             {
-                return _dbContext.Users.FirstOrDefault(u => u.ApiKey == apiKey)!;
-            }
-
-            public void DeleteUser(string apiKey)
-            {
-                var user = _dbContext.Users.FirstOrDefault(u => u.ApiKey == apiKey);
-                if (user != null)
+                var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.ApiKey == apiKey);
+                if (user == null)
                 {
-                    _dbContext.Users.Remove(user);
-                    _dbContext.SaveChanges();
+                    return false;
                 }
+                _dbContext.Users.Remove(user);
+                await _dbContext.SaveChangesAsync();
+                return true;
             }
         }
         #endregion
@@ -219,7 +222,6 @@ namespace DistSysAcwServer.Controllers
             return Ok(user);
         }
 
-        // Other action methods...
 
         private void LogRequest(string message)
         {

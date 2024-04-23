@@ -1,5 +1,7 @@
 ﻿using System.Security.Claims;
+using System.Text;
 using System.Text.Encodings.Web;
+using DistSysAcwServer.Models;
 using DistSysAcwServer.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
@@ -34,47 +36,59 @@ namespace DistSysAcwServer.Auth
         {
             if (!Request.Headers.TryGetValue("ApiKey", out var apiKeyHeaderValues))
             {
-                // ApiKey header is missing
-                return AuthenticateResult.Fail("Unauthorized. ApiKey header is missing.");
+                return Unauthorized("ApiKey header is missing.");
             }
 
             var apiKey = apiKeyHeaderValues.FirstOrDefault();
 
-
-            // Check if the API Key is valid
-            var user = await _userDatabaseAccess.GetUserByApiKey(apiKey);
-            if (user == null)
-            {
-                // API Key is not valid
-                return AuthenticateResult.Fail("Unauthorized. Check ApiKey in Header is correct.");
-            }
             if (string.IsNullOrEmpty(apiKey))
             {
-                return AuthenticateResult.Fail("Unauthorized: API Key is empty.");
+                return Unauthorized("API Key is empty.");
             }
 
-            // API Key is valid, create claims
-            var claims = new List<Claim>
+            var user = await GetUserByApiKeyAsync(apiKey);
+            if (user == null)
             {
-                new Claim(ClaimTypes.Name, user.UserName),
-                new Claim(ClaimTypes.Role, user.Role.ToString())
-            };
+                return Unauthorized("Check ApiKey in Header is correct.");
+            }
 
-            var claimsIdentity = new ClaimsIdentity(claims, "ApiKey");
-            var claimsPrincipal = new ClaimsPrincipal(claimsIdentity);
+            var claimsPrincipal = CreateClaimsPrincipal(user);
 
             var ticket = new AuthenticationTicket(claimsPrincipal, Scheme.Name);
 
             return AuthenticateResult.Success(ticket);
         }
 
-       /* protected override async Task HandleChallengeAsync(AuthenticationProperties properties)
+        private async Task<User> GetUserByApiKeyAsync(string apiKey)
+        {
+            return await _userDatabaseAccess.GetUserByApiKey(apiKey);
+        }
+
+        private ClaimsPrincipal CreateClaimsPrincipal(User user)
+        {
+        var claims = new List<Claim>
+        {
+            new Claim(ClaimTypes.Name, user.UserName),
+            new Claim(ClaimTypes.Role, user.Role.ToString())
+        };
+
+            var claimsIdentity = new ClaimsIdentity(claims, "ApiKey");
+
+            return new ClaimsPrincipal(claimsIdentity);
+        }
+
+        private AuthenticateResult Unauthorized(string message)
+        {
+            return AuthenticateResult.Fail($"Unauthorized: {message}");
+        }
+
+        protected override async Task HandleChallengeAsync(AuthenticationProperties properties)
         {
             byte[] messageBytes = Encoding.ASCII.GetBytes("Unauthorized. Check ApiKey in Header is correct.");
             Context.Response.StatusCode = 401;
             Context.Response.ContentType = "application/json";
             await Context.Response.Body.WriteAsync(messageBytes, 0, messageBytes.Length);
             await Context.Response.Body.FlushAsync();
-        }*/
+        }
     }
 }

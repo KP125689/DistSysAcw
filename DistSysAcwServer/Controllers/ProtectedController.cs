@@ -10,7 +10,7 @@ using DistSysAcwServer.Models;
 #region Task9
 namespace DistSysAcwServer.Controllers
 {
-    
+
     [Authorize(Roles = "Admin, User")]
     [Route("api/[controller]")]
     [ApiController]
@@ -18,11 +18,15 @@ namespace DistSysAcwServer.Controllers
     {
         private readonly RSA rsaProvider;
         private readonly UserContext _dbContext;
+        private readonly UserDatabaseAccess _userDatabaseAccess;
 
-
+        public ProtectedController(UserDatabaseAccess userDatabaseAccess)
+        {
+            _userDatabaseAccess = userDatabaseAccess;
+        }
         // GET: api/protected/hello
         [HttpGet("hello")]
-        public IActionResult Hello()
+        public IActionResult hello()
         {
             return Ok("Hello from the protected endpoint!");
         }
@@ -154,10 +158,96 @@ namespace DistSysAcwServer.Controllers
             // Return the signed message in hexadecimal format
             return Ok(hexSignature);
         }
+
+
+        [HttpGet("Mashify")]
+        [Authorize(Roles = "Admin")]
+        public IActionResult Mashify(
+            [FromHeader(Name = "EncryptedString")] string encryptedString,
+            [FromHeader(Name = "EncryptedSymmetricKey")] string encryptedSymmetricKey,
+            [FromHeader(Name = "EncryptedIV")] string encryptedIV)
+        {
+            try
+            {
+                // Check if API Key is in the database
+                var apiKey = Request.Headers["ApiKey"].FirstOrDefault();
+                var user = _userDatabaseAccess.GetUserByApiKey(apiKey);
+                if (user == null)
+                {
+                    return Unauthorized("Invalid API Key");
+                }
+
+                // Decrypt the parameters using the server's private RSA key
+                string decryptedString = DecryptRSA(encryptedString, user.Result.PrivateRSAKey);
+                string decryptedSymmetricKey = DecryptRSA(encryptedSymmetricKey, user.Result.PrivateRSAKey);
+                string decryptedIV = DecryptRSA(encryptedIV, user.Result.PrivateRSAKey);
+
+                // Mashify the decrypted string
+                string mashifiedString = MashifyString(decryptedString);
+
+                // Encrypt the mashified string using the client's symmetric key and IV
+                string encryptedMashifiedString = EncryptAES(mashifiedString, decryptedSymmetricKey, decryptedIV);
+
+                return Ok(encryptedMashifiedString);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"An error occurred: {ex.Message}");
+            }
+        }
+
+        private string DecryptRSA(string encryptedString, object privateRSAKey)
+        {
+            throw new NotImplementedException();
+        }
+
+        
+        private string DecryptRSA(string encryptedData, RSA rsa)
+        {
+            byte[] encryptedBytes = Convert.FromHexString(encryptedData);
+            byte[] decryptedBytes = rsa.Decrypt(encryptedBytes, RSAEncryptionPadding.OaepSHA1);
+            return Encoding.UTF8.GetString(decryptedBytes);
+        }
+
+        private string EncryptAES(string plainText, string key, string iv)
+        {
+            using (Aes aesAlg = Aes.Create())
+            {
+                aesAlg.Key = Convert.FromHexString(key);
+                aesAlg.IV = Convert.FromHexString(iv);
+
+                ICryptoTransform encryptor = aesAlg.CreateEncryptor(aesAlg.Key, aesAlg.IV);
+
+                using (MemoryStream msEncrypt = new MemoryStream())
+                {
+                    using (CryptoStream csEncrypt = new CryptoStream(msEncrypt, encryptor, CryptoStreamMode.Write))
+                    {
+                        using (StreamWriter swEncrypt = new StreamWriter(csEncrypt))
+                        {
+                            swEncrypt.Write(plainText);
+                        }
+                    }
+                    return Convert.ToHexString(msEncrypt.ToArray());
+                }
+            }
+        }
+
+        private string MashifyString(string input)
+        {
+            var vowels = new HashSet<char> { 'a', 'e', 'i', 'o', 'u', 'A', 'E', 'I', 'O', 'U' };
+            var chars = input.Select(c => vowels.Contains(c) ? 'X' : c).Reverse();
+            return new string(chars.ToArray());
+        }
     }
-    
+
+
+
+
+
+
 
 }
+
 
 
 

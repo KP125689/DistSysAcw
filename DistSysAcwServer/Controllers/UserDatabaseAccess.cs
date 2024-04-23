@@ -11,28 +11,61 @@ namespace DistSysAcwServer.Services
     {
 
         private readonly UserContext _dbContext;
+        //private readonly UserDatabaseAccess _userDatabaseAccess;
 
         public UserDatabaseAccess(UserContext dbContext)
         {
             _dbContext = dbContext;
+
         }
 
+        public async Task<string> CreateUser(string username)
+        {
+            var user = new User
+            {
+                UserName = username,
+                ApiKey = Guid.NewGuid().ToString() // Generate a new GUID as the API key
+            };
 
+            _dbContext.Users.Add(user);
+            await _dbContext.SaveChangesAsync();
 
-        public async Task<User> GetUserByApiKey(string apiKey)
+            return user.ApiKey;
+        }
+
+        public bool CheckUserExists(string ApiKey)
+        {
+            // Check if a user with the given API key exists in the database
+            return _dbContext.Users.Any(u => u.ApiKey == ApiKey);
+        }
+
+        public bool CheckUserExists(string ApiKey, string username)
+        {
+            // Check if a user with the given API key and username exists in the database
+            return _dbContext.Users.Any(u => u.ApiKey == ApiKey && u.UserName == username);
+        }
+
+        public User GetUser(string ApiKey)
+        {
+            // Get the user with the given API key from the database
+            return _dbContext.Users.FirstOrDefault(u => u.ApiKey == ApiKey);
+        }
+
+      
+        public async Task<User> GetUserByApiKey(string ApiKey)
         {
             // Your database query logic to retrieve user by API key
-            // Assuming you have a DbSet<User> called Users in your UserContext
-            return await _dbContext.Users.FirstOrDefaultAsync(u => u.ApiKey == apiKey);
+            return await _dbContext.users.FirstOrDefaultAsync(u => u.ApiKey == ApiKey);
         }
 
-        public bool DeleteUser(string apiKey) //task 7
+        public bool DeleteUser(string ApiKey) //task 7
         {
-            var user = _dbContext.Users.FirstOrDefault(u => u.ApiKey == apiKey);
+            var user = _dbContext.users.FirstOrDefault(u => u.ApiKey == ApiKey);
+
             if (user != null)
             {
 
-                _dbContext.Users.Remove(user);
+                _dbContext.users.Remove(user);
                 _dbContext.SaveChanges();
                 return true;
             }
@@ -48,7 +81,7 @@ namespace DistSysAcwServer.Services
         {
             var logArchive = new LogArchives
             {
-                UserId = user.Id,
+                Id = user.Id,
                 LogString = logString,
                 LogDateTime = DateTime.Now
             };

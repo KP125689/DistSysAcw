@@ -3,17 +3,21 @@ using Microsoft.AspNetCore.Authorization;
 using System.Reflection;
 using DistSysAcwServer.Models; 
 using DistSysAcwServer.Auth; 
-using DistSysAcwServer.Services; 
+using DistSysAcwServer.Services;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Services.AddScoped<UserDatabaseAccess>();
 
 builder.Services.AddControllers(options =>
 {
     options.AllowEmptyInputInBodyModelBinding = true;
 });
 builder.Services.AddDbContext<DistSysAcwServer.Models.UserContext>();
+
+
 builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddAuthentication(options =>
@@ -24,7 +28,7 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddTransient<IAuthorizationHandler, DistSysAcwServer.Auth.CustomAuthorizationHandler>();
 
-builder.Services.AddScoped<UserDatabaseAccess>();
+
 
 var app = builder.Build();
 

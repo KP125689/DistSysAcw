@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 
 namespace DistSysAcwServer.Models
@@ -20,16 +21,19 @@ namespace DistSysAcwServer.Models
            ApiKey = Guid.NewGuid().ToString();
           
 
-        } // was the old Empty constructor
+        } 
 
         public virtual ICollection<LogArchives> ArchivedLogs { get; set; }
 
 
         [Key]
-        public string? ApiKey { get; set; }
-        public string? UserName { get; set; }
-        public string? Role { get; set; }
+        [Required]
+        public string ApiKey { get; set; }
+        public string UserName { get; set; }
+        public string Role { get; set; }
         public int Id { get; internal set; }
+        [NotMapped]
+        public object PrivateRSAKey { get; internal set; }
 
         #endregion
     }
@@ -41,7 +45,7 @@ namespace DistSysAcwServer.Models
     public class LogArchives
     {
         public int LogArchiveId { get; set; }
-        public int UserId { get; set; } // Foreign key to the User table
+        public int Id { get; set; } // Foreign key to the User table
         public string LogString { get; set; }
         public DateTime LogDateTime { get; set; }
     }
