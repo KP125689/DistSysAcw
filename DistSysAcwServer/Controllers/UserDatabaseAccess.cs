@@ -3,6 +3,7 @@ using DistSysAcwServer.Models;
 using DistSysAcwServer.Auth;
 using DistSysAcwServer.Migrations;
 using Microsoft.EntityFrameworkCore;
+using DistSysAcwServer.Controllers;
 
 namespace DistSysAcwServer.Services
 {
@@ -16,6 +17,8 @@ namespace DistSysAcwServer.Services
             _dbContext = dbContext;
         }
 
+
+
         public async Task<User> GetUserByApiKey(string apiKey)
         {
             // Your database query logic to retrieve user by API key
@@ -28,6 +31,7 @@ namespace DistSysAcwServer.Services
             var user = _dbContext.Users.FirstOrDefault(u => u.ApiKey == apiKey);
             if (user != null)
             {
+
                 _dbContext.Users.Remove(user);
                 _dbContext.SaveChanges();
                 return true;
@@ -36,6 +40,24 @@ namespace DistSysAcwServer.Services
             {
                 return false;
             }
+
+
         }
+
+        public async Task ArchiveLog(User user, string logString)
+        {
+            var logArchive = new LogArchives
+            {
+                UserId = user.Id,
+                LogString = logString,
+                LogDateTime = DateTime.Now
+            };
+
+            _dbContext.logs.Add(logArchive);
+            await _dbContext.SaveChangesAsync();
+        }
+
+
+
     }
 }

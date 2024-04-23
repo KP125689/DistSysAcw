@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
+using System.Security.Cryptography.Xml;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -14,6 +15,8 @@ Console.WriteLine("helloworld");
 #region Task 10 and beyond
 namespace DistSysAcwClient
 {
+
+
     public class YourClientClass
     {
         private static string publicKey;
@@ -56,13 +59,88 @@ namespace DistSysAcwClient
         }
     }
 
+    public class SignManager
+    {
+        public static async Task<string> SignMessageAsync(string apiKey, string message)
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                client.DefaultRequestHeaders.Add("ApiKey", apiKey);
+
+                StringContent content = new StringContent(message, Encoding.ASCII, "text/plain");
+                HttpResponseMessage response = await client.PostAsync("http://localhost:<port>/api/Protected/Sign", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    string signedMessage = await response.Content.ReadAsStringAsync();
+                    return signedMessage;
+                }
+                else
+                {
+                    throw new Exception("Failed to sign message.");
+                }
+            }
+        }
+
+        // Method to verify the signature using the server's public key
+        public static bool VerifySignature(string publicKey, string message, string signature)
+        {
+            // Use the server's public key to verify the signature
+            RSA rsa = RSA.Create();
+            rsa.FromXmlString(publicKey);
+            byte[] data = Encoding.ASCII.GetBytes(message);
+            byte[] signatureBytes = Convert.FromHexString(signature);
+            return rsa.VerifyData(data, signatureBytes, HashAlgorithmName.SHA1, RSASignaturePadding.Pkcs1);
+
+            //return true; // Placeholder for verification logic
+        }
+    }
+
+    public class PublicKeyManager
+    {
+        private static string publicKey;
+
+        public static async Task<string> GetPublicKeyAsync(string apiKey)
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                client.DefaultRequestHeaders.Add("ApiKey", apiKey);
+
+                HttpResponseMessage response = await client.GetAsync("http://localhost:<port>/api/Protected/GetPublicKey");
+                if (response.IsSuccessStatusCode)
+                {
+                    publicKey = await response.Content.ReadAsStringAsync();
+                    return publicKey;
+                }
+                else
+                {
+                    throw new Exception("Failed to retrieve public key.");
+                }
+            }
+        }
+
+        // Method to encrypt data using the stored public key
+        public static string EncryptData(string data)
+        {
+            // Use the stored public key to encrypt data
+            RSA rsa = RSA.Create();
+            rsa.FromXmlString(publicKey);
+            byte[] encryptedData = rsa.Encrypt(Encoding.UTF8.GetBytes(data), RSAEncryptionPadding.OaepSHA256);
+            return Convert.ToBase64String(encryptedData);
+
+            //return "Encrypted data"; // Placeholder for encryption logic
+        }
+    }
+
+
+
 
     class Program
     {
         static HttpClient client = new HttpClient();
         private static readonly HttpClient httpClient = new HttpClient();
 
-
+        
         public static class Constants
         {
             public const string BaseUrl = "http://localhost:44394/"; // Update <portnumber> with your local server's port
@@ -73,11 +151,21 @@ namespace DistSysAcwClient
         {
 
             // Retrieve and store the public key
-            await YourClientClass.GetPublicKey();
+            //await YourClientClass.GetPublicKey();
 
+            string apiKey = "<your-api-key>";
+            string message = "Your message to sign";
+            //string publicKey = await PublicKeyManager.GetPublicKeyAsync(apiKey);
             // Example: Encrypt data using the stored public key
             string encryptedData = YourClientClass.EncryptData("Your sensitive data");
             Console.WriteLine("Encrypted data: " + encryptedData);
+            string signedMessage = await SignManager.SignMessageAsync(apiKey, message);
+            Console.WriteLine("Signed message: " + signedMessage);
+
+            // Verify the signature using the server's public key
+            string publicKey = "<server-public-key>"; // Retrieve the server's public key from Task11
+            bool isSignatureValid = SignManager.VerifySignature(publicKey, message, signedMessage);
+            Console.WriteLine("Is signature valid? " + isSignatureValid);
 
 
             Console.WriteLine("Hello. What would you like to do?");

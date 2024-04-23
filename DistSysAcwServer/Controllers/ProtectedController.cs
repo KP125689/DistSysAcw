@@ -4,16 +4,21 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using System;
+using Microsoft.EntityFrameworkCore;
+using DistSysAcwServer.Services;
+using DistSysAcwServer.Models;
 #region Task9
 namespace DistSysAcwServer.Controllers
 {
-
+    
     [Authorize(Roles = "Admin, User")]
     [Route("api/[controller]")]
     [ApiController]
     public class ProtectedController : ControllerBase
     {
         private readonly RSA rsaProvider;
+        private readonly UserContext _dbContext;
+
 
         // GET: api/protected/hello
         [HttpGet("hello")]
@@ -109,11 +114,45 @@ namespace DistSysAcwServer.Controllers
 
 
         // GET: api/Protected/GetPublicKey
-        public string GetPublicKey()
+
+        [HttpGet("GetPublicKey")]
+        [Authorize(Roles = "User, Admin")]
+        public IActionResult GetPublicKey()
         {
-            // Get the XML string representation of the RSA public key
-            string publicKeyXml = rsaProvider.ToXmlString(false);
-            return publicKeyXml;
+            // Retrieve the public key from the RSA CSP
+            RSA rsa = RSA.Create();
+            //rsa.ExportParameters(/* Load public key parameters */);
+
+            // Get the XML representation of the public key
+            string publicKeyXml = rsa.ToXmlString(includePrivateParameters: false);
+
+            // Return the public key as XML string
+            return Ok(publicKeyXml);
+        }
+
+        [HttpPost("Sign")]
+        [Authorize(Roles = "User, Admin")]
+        public IActionResult Sign([FromBody] string message)
+        {
+            // Check if the API key is in the database (assuming _dbContext is your database context)
+            string apiKey = HttpContext.Request.Headers["ApiKey"];
+            var user = _dbContext.Users.FirstOrDefault(u => u.ApiKey == apiKey);
+            if (user == null)
+            {
+                return Unauthorized();
+            }
+
+            // Digitally sign the message with the server's private RSA key
+            RSA rsa = RSA.Create();
+            //rsa.ImportParameters(/* Load private key parameters */);
+            byte[] data = Encoding.ASCII.GetBytes(message);
+            byte[] signature = rsa.SignData(data, HashAlgorithmName.SHA1, RSASignaturePadding.Pkcs1);
+
+            // Convert the signature to hexadecimal format with dashes as delimiters
+            string hexSignature = BitConverter.ToString(signature).Replace("-", "");
+
+            // Return the signed message in hexadecimal format
+            return Ok(hexSignature);
         }
     }
     

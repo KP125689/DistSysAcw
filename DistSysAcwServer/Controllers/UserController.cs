@@ -22,6 +22,7 @@ namespace DistSysAcwServer.Controllers
             _userDatabaseAccess = userDatabaseAccess;
 
         }
+
         #region Task7
         [HttpDelete("RemoveUser")]
         [Authorize(Roles = "User, Admin")]
@@ -201,12 +202,69 @@ namespace DistSysAcwServer.Controllers
             return Ok($"Role updated successfully for user '{model.Username}'. New role: '{model.Role}'.");
             
         }
+
+        [HttpGet("{id}")]
+        public IActionResult GetUser(int id)
+        {
+            var user = _dbContext.Users.FirstOrDefault(u => u.Id == id);
+            if (user == null)
+            {
+                // Log user not found
+                LogNotFound($"User with ID {id} not found");
+                return NotFound();
+            }
+
+            // Log successful request
+            LogRequest($"GetUser: User with ID {id} retrieved");
+            return Ok(user);
+        }
+
+        // Other action methods...
+
+        private void LogRequest(string message)
+        {
+            var user = GetUserFromRequest();
+            if (user != null)
+            {
+                user.ArchivedLogs.Add(new LogArchives());
+                _dbContext.SaveChanges();
+            }
+        }
+
+        private void LogNotFound(string message)
+        {
+            var user = GetUserFromRequest();
+            if (user != null)
+            {
+                user.ArchivedLogs.Add(new LogArchives());
+                _dbContext.SaveChanges();
+            }
+        }
+
+        private User GetUserFromRequest()
+        {
+            // Get the API key from the request header
+            if (HttpContext.Request.Headers.TryGetValue("ApiKey", out var apiKeyHeader))
+            {
+                var apiKey = apiKeyHeader.FirstOrDefault();
+
+                // Find the user with the given API key in the database
+                var user = _dbContext.Users.FirstOrDefault(u => u.ApiKey == apiKey);
+
+                return user;
+            }
+
+            // If API key is not found or user is not authenticated, return null
+            return null;
+        }
     }
     public class UserRoleChangeModel
     {
         public string? Username { get; set; }
         public string? Role { get; set; }
     }
+
+
 }
 
 
