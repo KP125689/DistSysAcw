@@ -3,7 +3,7 @@ using DistSysAcwServer.Controllers;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Authorization;
-
+using System;
 #region Task9
 namespace DistSysAcwServer.Controllers
 {
@@ -13,6 +13,8 @@ namespace DistSysAcwServer.Controllers
     [ApiController]
     public class ProtectedController : ControllerBase
     {
+        private readonly RSA rsaProvider;
+
         // GET: api/protected/hello
         [HttpGet("hello")]
         public IActionResult Hello()
@@ -53,8 +55,70 @@ namespace DistSysAcwServer.Controllers
                 return Ok(hexHash);
             }
         }
+        #endregion Task9s
+
+
+        public static class KeyStorageHelper
+        {
+            private const string ContainerName = "MyRSAKeyContainer";
+
+            public static RSA GetOrCreateRSAProvider()
+            {
+
+#pragma warning disable CA1416 // Validate platform compatibility
+                CspParameters cspParams = new CspParameters()
+                {
+                    KeyContainerName = ContainerName,
+                    Flags = CspProviderFlags.UseMachineKeyStore
+                };
+#pragma warning restore CA1416 // Validate platform compatibility
+
+                try
+                {
+                    // Try to retrieve the RSA key pair from the machine key store
+                    using (var rsa = new RSACryptoServiceProvider(cspParams))
+                    {
+                        // Check if the key pair exists
+                        if (rsa.PublicOnly)
+                        {
+                            throw new CryptographicException($"RSA key pair not found in the machine key store. Generate a new key pair.");
+                        }
+
+                        return rsa;
+                    }
+                }
+                catch (CryptographicException)
+                {
+
+                    // RSA key pair not found, generate a new one and store it in the machine key store
+                    using (var rsa = new RSACryptoServiceProvider(2048, cspParams))
+                    {
+                        return rsa;
+                    }
+                }
+            }
+        }
+
+        public ProtectedController()
+        {
+            // Retrieve or create RSA provider
+            rsaProvider = KeyStorageHelper.GetOrCreateRSAProvider();
+        }
+
+
+
+
+        // GET: api/Protected/GetPublicKey
+        public string GetPublicKey()
+        {
+            // Get the XML string representation of the RSA public key
+            string publicKeyXml = rsaProvider.ToXmlString(false);
+            return publicKeyXml;
+        }
     }
+    
+
 }
-#endregion Task9s
+
 
 
